@@ -1,12 +1,24 @@
 #!/usr/bin/env bash
 # Installs a launchd agent that keeps llama-server running for wisp, starting it at login and
 # restarting it if it exits. Re-running the script replaces the agent.
+#
+# Usage: install-llama-service.sh [1.5b|3b]   (default 1.5b)
 set -euo pipefail
+
+size="${1:-1.5b}"
+case "$size" in
+1.5b) repo="Qwen2.5-Coder-1.5B-Q8_0-GGUF" ;;
+3b) repo="Qwen2.5-Coder-3B-Q8_0-GGUF" ;;
+*)
+  echo "unknown model size '$size'; use 1.5b or 3b" >&2
+  exit 1
+  ;;
+esac
 
 label="dev.wisp.llama-server"
 plist="$HOME/Library/LaunchAgents/$label.plist"
 log="$HOME/Library/Logs/wisp-llama-server.log"
-preset="--fim-qwen-1.5b-default"
+preset="--fim-qwen-$size-default"
 port=8012
 
 server=$(command -v llama-server) || {
@@ -16,7 +28,7 @@ server=$(command -v llama-server) || {
 
 # The agent runs --offline so a missing network at login cannot stop it; the weights must
 # already be cached. The first run of the preset downloads them.
-if ! compgen -G "$HOME/.cache/huggingface/hub/models--ggml-org--Qwen2.5-Coder-1.5B-Q8_0-GGUF/snapshots/*/*.gguf" >/dev/null; then
+if ! compgen -G "$HOME/.cache/huggingface/hub/models--ggml-org--$repo/snapshots/*/*.gguf" >/dev/null; then
   echo "Model not downloaded yet. Run this once, wait for 'server is listening', then Ctrl-C:" >&2
   echo "  llama-server $preset" >&2
   exit 1
@@ -58,11 +70,16 @@ plutil -lint "$plist" >/dev/null
 
 domain="gui/$(id -u)"
 launchctl bootout "$domain/$label" 2>/dev/null || true
+# bootout returns before the old agent is gone, and bootstrap fails while it is still loaded.
+for _ in $(seq 1 50); do
+  launchctl print "$domain/$label" >/dev/null 2>&1 || break
+  sleep 0.2
+done
 launchctl bootstrap "$domain" "$plist"
 
 for _ in $(seq 1 60); do
   if curl -sf "http://127.0.0.1:$port/health" >/dev/null; then
-    echo "llama-server is running on port $port (agent $label, log $log)"
+    echo "llama-server ($size) is running on port $port (agent $label, log $log)"
     exit 0
   fi
   sleep 0.5

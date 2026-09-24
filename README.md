@@ -55,6 +55,11 @@ Requires zsh with [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosug
    ./scripts/install-llama-service.sh
    ```
 
+   To use Qwen2.5-Coder 3B instead, run `llama-server --fim-qwen-3b-default` once to download it
+   (3.3 GB), then `./scripts/install-llama-service.sh 3b`. Its suggestions are longer and more
+   complete; it answers in ~170–450 ms, versus ~50–120 ms for 1.5B. Run the script with `1.5b`
+   to switch back.
+
    The agent logs to `~/Library/Logs/wisp-llama-server.log`. To remove it:
 
    ```bash
