@@ -1,0 +1,9 @@
+{
+  "prompt": "Use the provided crop as the approved visual reference and recreate it as a clean production asset at the target aspect ratio. This is a photographic or illustrated image region. Output the same subject, same framing, same lighting. Preserve silhouette, composition, perspective, palette (#0a0a18, #2b1a1a, #f7f0df), lighting, material, and texture exactly. Remove every piece of UI text, label, caption, button, and interface chrome that is not part of the artwork itself. Remove letterboxing, borders, card corners, drop shadows, and any layout background that the page will draw in code. Do not add objects. Do not change the concept. Do not restyle. The artwork fills the whole frame edge to edge at the same scale as the reference; no margins, no border, no background band. Region: full-bleed ink-blue black plane covered by a fine bronze wire gauze mesh that undulates in slow soft waves, with faint warm orange glints along the wave crests; no text.\n",
+  "createdAt": "2026-09-24T13:41:39.100Z",
+  "tool": "impeccable generate-image",
+  "model": "gpt-image-2.5-flare",
+  "refs": [
+    ".impeccable/build/plates/gauze-crop.png"
+  ]
+}
