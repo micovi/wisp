@@ -43,12 +43,23 @@ zsh plugin ──unix socket──▶ wisp daemon ──HTTP──▶ llama-serv
 Requires zsh with [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions) loaded
 **before** wisp.
 
-1. Start the model server. The first run downloads Qwen2.5-Coder 1.5B (1.65 GB); it then serves
-   on port 8012.
+1. Download the model and keep llama-server running.
+
+   The first run of the preset downloads Qwen2.5-Coder 1.5B (1.65 GB). Stop it with Ctrl-C once
+   it says `server is listening`. The script then installs a launchd agent: it starts
+   llama-server at login on port 8012 and restarts it if it exits.
 
    ```bash
    brew install llama.cpp
    llama-server --fim-qwen-1.5b-default
+   ./scripts/install-llama-service.sh
+   ```
+
+   The agent logs to `~/Library/Logs/wisp-llama-server.log`. To remove it:
+
+   ```bash
+   launchctl bootout gui/$(id -u)/dev.wisp.llama-server
+   trash ~/Library/LaunchAgents/dev.wisp.llama-server.plist
    ```
 
 2. Install wisp:
