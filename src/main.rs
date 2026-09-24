@@ -25,13 +25,15 @@ enum Command {
     /// Print the shell plugin. Add `eval "$(wisp init zsh)"` to the end of ~/.zshrc.
     Init {
         shell: Shell,
-        #[arg(long, default_value_os_t = default_socket())]
-        socket: PathBuf,
+        /// Defaults to ~/.cache/wisp/wisp.sock.
+        #[arg(long)]
+        socket: Option<PathBuf>,
     },
     /// Run the daemon the shell plugin talks to. The plugin starts it on demand.
     Daemon {
-        #[arg(long, default_value_os_t = default_socket())]
-        socket: PathBuf,
+        /// Defaults to ~/.cache/wisp/wisp.sock.
+        #[arg(long)]
+        socket: Option<PathBuf>,
         /// Base URL of the llama-server that generates suggestions.
         #[arg(long, env = "WISP_LLM_URL", default_value = "http://127.0.0.1:8012")]
         llm_url: String,
@@ -52,8 +54,14 @@ enum Shell {
     Zsh,
 }
 
-fn default_socket() -> PathBuf {
-    std::env::temp_dir().join("wisp.sock")
+/// A fixed per-user path, so every shell finds the same daemon even when tools such as
+/// nix-shell or direnv change `TMPDIR`.
+fn socket_or_default(socket: Option<PathBuf>) -> anyhow::Result<PathBuf> {
+    if let Some(socket) = socket {
+        return Ok(socket);
+    }
+    let home = std::env::home_dir().context("HOME is not set; pass --socket explicitly")?;
+    Ok(home.join(".cache/wisp/wisp.sock"))
 }
 
 #[tokio::main]
@@ -66,8 +74,11 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     match Cli::parse().command {
-        Command::Init { shell: Shell::Zsh, socket } => print_zsh_plugin(&socket),
+        Command::Init { shell: Shell::Zsh, socket } => {
+            print_zsh_plugin(&socket_or_default(socket)?)
+        }
         Command::Daemon { socket, llm_url } => {
+            let socket = socket_or_default(socket)?;
             let model = LlamaClient::new(&llm_url)?;
             daemon::run(Config { socket, model, debounce: DEBOUNCE }).await
         }

@@ -4,6 +4,8 @@
 //! with `<seq>\t<suggested command line>\n`. Each connection is one shell session. The shell
 //! numbers its messages and ignores replies to anything but its latest one.
 
+use std::fs::DirBuilder;
+use std::os::unix::fs::DirBuilderExt as _;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
@@ -66,6 +68,14 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
 }
 
 async fn bind(socket: &Path) -> anyhow::Result<UnixListener> {
+    if let Some(dir) = socket.parent() {
+        // Owner-only, so other users cannot talk to this daemon.
+        DirBuilder::new()
+            .recursive(true)
+            .mode(0o700)
+            .create(dir)
+            .with_context(|| format!("creating socket directory {}", dir.display()))?;
+    }
     if UnixStream::connect(socket).await.is_ok() {
         bail!("another wisp daemon is already listening on {}", socket.display());
     }

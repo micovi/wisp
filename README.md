@@ -83,7 +83,7 @@ variables, restart the daemon: `pkill -f "wisp daemon"`. The next prompt starts 
 ```bash
 wisp complete "git che"                 # suggestion + latency, using this dir and pane
 wisp complete --show-prompt "git che"   # also print what the model sees
-tail -f "$TMPDIR/wisp.log"              # daemon log
+tail -f ~/.cache/wisp/wisp.log          # daemon log
 ```
 
 ## Development

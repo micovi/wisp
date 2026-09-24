@@ -5,6 +5,7 @@
     reason = "test helpers outside #[test] fns should fail loudly"
 )]
 
+use std::os::unix::fs::PermissionsExt as _;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -230,4 +231,20 @@ async fn a_stale_socket_file_is_replaced() {
     };
     tokio::spawn(daemon::run(config));
     connect(&socket).await;
+}
+
+#[tokio::test]
+async fn creates_a_missing_socket_directory() {
+    let dir = tempfile::tempdir().unwrap();
+    let socket = dir.path().join("cache/wisp/wisp.sock");
+    let model = fake_model("", Duration::ZERO).await;
+    let config = Config {
+        socket: socket.clone(),
+        model: LlamaClient::new(&model.url).unwrap(),
+        debounce: DEBOUNCE,
+    };
+    tokio::spawn(daemon::run(config));
+    connect(&socket).await;
+    let mode = std::fs::metadata(socket.parent().unwrap()).unwrap().permissions().mode();
+    assert_eq!(mode & 0o777, 0o700);
 }

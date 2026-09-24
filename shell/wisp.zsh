@@ -38,6 +38,7 @@ _wisp_connect() {
   [[ -n $_WISP_FD ]] && return 0
   (( EPOCHSECONDS >= _WISP_RETRY_AT )) || return 1
   if ! zsocket $_WISP_SOCKET 2>/dev/null; then
+    mkdir -p -m 700 ${_WISP_SOCKET:h}
     ( cd / && exec $_WISP_BIN daemon --socket $_WISP_SOCKET </dev/null >>$_WISP_LOG 2>&1 & )
     local attempt connected=0
     for attempt in {1..20}; do
