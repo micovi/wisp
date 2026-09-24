@@ -1,1 +1,10 @@
 /target
+
+# impeccable working files (comps, references, captures, build state)
+/.impeccable/mocks/
+/.impeccable/refs/
+/.impeccable/review/
+/.impeccable/build/
+/.impeccable/prompts/
+/.impeccable/decision-payload.json
+/.impeccable/config.local.json
