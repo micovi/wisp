@@ -16,6 +16,7 @@ use tokio::net::unix::OwnedReadHalf;
 use tokio::net::{TcpListener, UnixStream};
 use wisp::daemon::{self, Config};
 use wisp::model::LlamaClient;
+use wisp::stats::DaemonStats;
 
 const DEBOUNCE: Duration = Duration::from_millis(50);
 const REPLY_TIMEOUT: Duration = Duration::from_secs(2);
@@ -113,6 +114,7 @@ async fn start_daemon(model_url: &str) -> Shell {
         socket: socket.clone(),
         model: LlamaClient::new(model_url).unwrap(),
         debounce: DEBOUNCE,
+        paused_flag: wisp::paths::paused_flag(&socket),
     };
     tokio::spawn(daemon::run(config));
     let stream = connect(&socket).await;
@@ -212,8 +214,12 @@ async fn a_second_daemon_refuses_to_steal_the_socket() {
     let model = fake_model("", Duration::ZERO).await;
     let shell = start_daemon(&model.url).await;
     let socket = shell.dir.path().join("wisp.sock");
-    let second =
-        Config { socket, model: LlamaClient::new(&model.url).unwrap(), debounce: DEBOUNCE };
+    let second = Config {
+        socket,
+        model: LlamaClient::new(&model.url).unwrap(),
+        debounce: DEBOUNCE,
+        paused_flag: PathBuf::from("/nonexistent/wisp-paused"),
+    };
     let err = daemon::run(second).await.unwrap_err();
     assert!(err.to_string().contains("already listening"), "{err:#}");
 }
@@ -228,6 +234,7 @@ async fn a_stale_socket_file_is_replaced() {
         socket: socket.clone(),
         model: LlamaClient::new(&model.url).unwrap(),
         debounce: DEBOUNCE,
+        paused_flag: PathBuf::from("/nonexistent/wisp-paused"),
     };
     tokio::spawn(daemon::run(config));
     connect(&socket).await;
@@ -242,9 +249,65 @@ async fn creates_a_missing_socket_directory() {
         socket: socket.clone(),
         model: LlamaClient::new(&model.url).unwrap(),
         debounce: DEBOUNCE,
+        paused_flag: PathBuf::from("/nonexistent/wisp-paused"),
     };
     tokio::spawn(daemon::run(config));
     connect(&socket).await;
     let mode = std::fs::metadata(socket.parent().unwrap()).unwrap().permissions().mode();
     assert_eq!(mode & 0o777, 0o700);
+}
+
+async fn status_of(socket: &Path) -> DaemonStats {
+    let stream = connect(socket).await;
+    let (read, mut write) = stream.into_split();
+    write.write_all(b"{\"t\":\"status\"}\n").await.unwrap();
+    let line = BufReader::new(read).lines().next_line().await.unwrap().unwrap();
+    serde_json::from_str(&line).unwrap()
+}
+
+#[tokio::test]
+async fn status_reports_shells_and_recent_suggestions() {
+    let model = fake_model("ckout main", Duration::ZERO).await;
+    let mut shell = start_daemon(&model.url).await;
+    let socket = shell.dir.path().join("wisp.sock");
+    assert_eq!(status_of(&socket).await.shells, 0, "a status query is not a shell");
+
+    shell.send(req(1, "git che")).await;
+    assert!(shell.reply().await.is_some());
+    let stats = status_of(&socket).await;
+    assert_eq!(stats.shells, 1);
+    assert_eq!(stats.recent.len(), 1);
+    assert_eq!(stats.recent[0].typed, "git che");
+    assert_eq!(stats.recent[0].suggested.as_deref(), Some("git checkout main"));
+    assert_eq!(stats.last_error, None);
+
+    drop(shell.write);
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    assert_eq!(status_of(&socket).await.shells, 0);
+}
+
+#[tokio::test]
+async fn status_reports_model_errors() {
+    let mut shell = start_daemon("http://127.0.0.1:9").await;
+    let socket = shell.dir.path().join("wisp.sock");
+    shell.send(req(1, "ls")).await;
+    tokio::time::sleep(DEBOUNCE * 4).await;
+    let error = status_of(&socket).await.last_error.unwrap_or_default();
+    assert!(error.contains("127.0.0.1:9"), "{error}");
+}
+
+#[tokio::test]
+async fn pausing_stops_suggestions_until_resumed() {
+    let model = fake_model("ckout main", Duration::ZERO).await;
+    let mut shell = start_daemon(&model.url).await;
+    let socket = shell.dir.path().join("wisp.sock");
+
+    wisp::paths::set_paused(&socket, true).unwrap();
+    shell.send(req(1, "git che")).await;
+    assert!(shell.no_reply_within(DEBOUNCE * 4).await);
+    assert_eq!(model.calls.load(Ordering::SeqCst), 0);
+
+    wisp::paths::set_paused(&socket, false).unwrap();
+    shell.send(req(2, "git che")).await;
+    assert_eq!(shell.reply().await.as_deref(), Some("2\tgit checkout main"));
 }

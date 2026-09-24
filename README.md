@@ -79,6 +79,25 @@ Requires zsh with [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosug
    eval "$(wisp init zsh)"
    ```
 
+4. Optional: show wisp in the macOS menu bar. The script installs a launchd agent that starts it
+   at login:
+
+   ```bash
+   ./scripts/install-menubar-service.sh
+   ```
+
+   The title reads `wisp 3B · 180ms`: the model size and the median latency. It changes to
+   `wisp ⏸` while suggestions are paused and to `wisp ⚠` when llama-server is down. The menu
+   shows:
+   - the loaded model and its memory use;
+   - how many shells are connected;
+   - the last 10 suggestions with their latency.
+
+   From the menu you can pause suggestions, restart llama-server or open either log.
+
+   macOS hides menu bar items that do not fit, which happens often on notched MacBooks. If the
+   item is missing, click `«` in the menu bar or check System Settings → Menu Bar.
+
 Accept a suggestion with → / End / Ctrl-F. These are zsh-autosuggestions' keys.
 
 Screen context works only inside WezTerm. In other terminals wisp still uses history, files, git
@@ -93,6 +112,14 @@ and the commands it saw finish.
 
 The plugin starts the daemon with the environment of your shell. After you change these
 variables, restart the daemon: `pkill -f "wisp daemon"`. The next prompt starts it again.
+
+## Status and pausing
+
+```bash
+wisp status          # llama-server, daemon, recent suggestions (--json for scripts)
+wisp pause           # no suggestions until `wisp resume`; survives restarts
+wisp resume
+```
 
 ## Debugging
 

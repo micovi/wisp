@@ -4,6 +4,8 @@
 #
 # Usage: install-llama-service.sh [1.5b|3b]   (default 1.5b)
 set -euo pipefail
+# shellcheck source=scripts/launchd.sh
+source "$(dirname "$0")/launchd.sh"
 
 size="${1:-1.5b}"
 case "$size" in
@@ -47,6 +49,12 @@ cat >"$plist" <<EOF
     <string>$server</string>
     <string>$preset</string>
     <string>--offline</string>
+    <!-- The preset reserves 4 x 32k tokens of KV cache (~4.7 GB for 3B). wisp prompts stay under
+         ~5k tokens, so 4 slots x 8k keeps four shells cached for a quarter of the memory. -->
+    <string>--ctx-size</string>
+    <string>32768</string>
+    <string>--parallel</string>
+    <string>4</string>
     <string>--host</string>
     <string>127.0.0.1</string>
     <string>--port</string>
@@ -66,16 +74,7 @@ cat >"$plist" <<EOF
 </dict>
 </plist>
 EOF
-plutil -lint "$plist" >/dev/null
-
-domain="gui/$(id -u)"
-launchctl bootout "$domain/$label" 2>/dev/null || true
-# bootout returns before the old agent is gone, and bootstrap fails while it is still loaded.
-for _ in $(seq 1 50); do
-  launchctl print "$domain/$label" >/dev/null 2>&1 || break
-  sleep 0.2
-done
-launchctl bootstrap "$domain" "$plist"
+load_agent "$label" "$plist"
 
 for _ in $(seq 1 60); do
   if curl -sf "http://127.0.0.1:$port/health" >/dev/null; then

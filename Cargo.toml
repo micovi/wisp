@@ -43,3 +43,7 @@ exit = "deny"
 mem_forget = "deny"
 module_name_repetitions = "allow"
 similar_names = "allow"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+tao = "0.37.0"
+tray-icon = "0.25.1"

@@ -2,7 +2,8 @@
 //!
 //! Protocol: the shell sends one JSON object per line (see [`ClientMsg`]); the daemon answers
 //! with `<seq>\t<suggested command line>\n`. Each connection is one shell session. The shell
-//! numbers its messages and ignores replies to anything but its latest one.
+//! numbers its messages and ignores replies to anything but its latest one. A `status` message
+//! is answered with one line of [`DaemonStats`] JSON instead.
 
 use std::fs::DirBuilder;
 use std::os::unix::fs::DirBuilderExt as _;
@@ -19,6 +20,7 @@ use tokio::task::JoinHandle;
 
 use crate::context::{Context, FinishedCommand, Sources};
 use crate::model::LlamaClient;
+use crate::stats::{DaemonStats, Recorder};
 
 const SESSION_COMMAND_LIMIT: usize = 20;
 
@@ -38,6 +40,8 @@ pub enum ClientMsg {
     },
     /// The command line changed; `buf` is everything left of the cursor.
     Req { seq: u64, buf: String },
+    /// Asks for a [`DaemonStats`] snapshot; sent by `wisp status`, not by shells.
+    Status,
 }
 
 pub struct Config {
@@ -45,6 +49,19 @@ pub struct Config {
     pub model: LlamaClient,
     /// How long typing must pause before the model is asked.
     pub debounce: Duration,
+    /// No suggestions are made while this file exists.
+    pub paused_flag: PathBuf,
+}
+
+struct Shared {
+    config: Config,
+    recorder: Mutex<Recorder>,
+}
+
+impl Shared {
+    fn recorder(&self) -> std::sync::MutexGuard<'_, Recorder> {
+        self.recorder.lock().unwrap_or_else(PoisonError::into_inner)
+    }
 }
 
 /// Serves shell sessions until the listener fails.
@@ -55,12 +72,12 @@ pub struct Config {
 pub async fn run(config: Config) -> anyhow::Result<()> {
     let listener = bind(&config.socket).await?;
     tracing::info!("listening on {}", config.socket.display());
-    let config = Arc::new(config);
+    let shared = Arc::new(Shared { config, recorder: Mutex::default() });
     loop {
         let (stream, _) = listener.accept().await.context("accepting shell connection")?;
-        let config = Arc::clone(&config);
+        let shared = Arc::clone(&shared);
         tokio::spawn(async move {
-            if let Err(err) = serve(stream, config).await {
+            if let Err(err) = serve(stream, shared).await {
                 tracing::warn!("shell session ended with error: {err:#}");
             }
         });
@@ -89,7 +106,7 @@ async fn bind(socket: &Path) -> anyhow::Result<UnixListener> {
     UnixListener::bind(socket).with_context(|| format!("binding {}", socket.display()))
 }
 
-async fn serve(stream: UnixStream, config: Arc<Config>) -> anyhow::Result<()> {
+async fn serve(stream: UnixStream, shared: Arc<Shared>) -> anyhow::Result<()> {
     let (read, mut write) = stream.into_split();
     let (replies, mut outbox) = mpsc::unbounded_channel::<String>();
     let writer = tokio::spawn(async move {
@@ -101,21 +118,27 @@ async fn serve(stream: UnixStream, config: Arc<Config>) -> anyhow::Result<()> {
         }
     });
 
-    let mut session = Session::new(config, replies);
+    let mut session = Session::new(shared, replies);
     let mut lines = BufReader::new(read).lines();
-    while let Some(line) = lines.next_line().await.context("reading from shell")? {
-        match serde_json::from_str::<ClientMsg>(&line) {
-            Ok(msg) => session.handle(msg).await,
-            Err(err) => tracing::warn!("ignoring malformed message {line:?}: {err}"),
+    let result = async {
+        while let Some(line) = lines.next_line().await.context("reading from shell")? {
+            match serde_json::from_str::<ClientMsg>(&line) {
+                Ok(msg) => session.handle(msg).await,
+                Err(err) => tracing::warn!("ignoring malformed message {line:?}: {err}"),
+            }
         }
+        Ok(())
     }
-    session.cancel();
+    .await;
+    session.close();
     writer.abort();
-    Ok(())
+    result
 }
 
 struct Session {
-    config: Arc<Config>,
+    shared: Arc<Shared>,
+    /// Set once the connection sends shell messages, so status queries are not counted.
+    is_shell: bool,
     replies: mpsc::UnboundedSender<String>,
     finished: Vec<FinishedCommand>,
     context: Arc<Context>,
@@ -124,9 +147,10 @@ struct Session {
 }
 
 impl Session {
-    fn new(config: Arc<Config>, replies: mpsc::UnboundedSender<String>) -> Self {
+    fn new(shared: Arc<Shared>, replies: mpsc::UnboundedSender<String>) -> Self {
         Self {
-            config,
+            shared,
+            is_shell: false,
             replies,
             finished: Vec::new(),
             context: Arc::default(),
@@ -138,12 +162,16 @@ impl Session {
     async fn handle(&mut self, msg: ClientMsg) {
         self.cancel();
         match msg {
+            ClientMsg::Status => self.send_status(),
             ClientMsg::Done { seq, cmd, status, cwd, pane, histfile } => {
                 self.set_last_suggestion(None);
                 if !cmd.trim().is_empty() {
                     self.finished.push(FinishedCommand { command: cmd, status });
                     let excess = self.finished.len().saturating_sub(SESSION_COMMAND_LIMIT);
                     self.finished.drain(..excess);
+                }
+                if !self.accepts_suggestions().await {
+                    return;
                 }
                 let histfile = Some(PathBuf::from(histfile)).filter(|p| !p.as_os_str().is_empty());
                 let sources = Sources { cwd: cwd.into(), pane, histfile };
@@ -152,21 +180,52 @@ impl Session {
                 self.suggest(seq, String::new(), Duration::ZERO);
             }
             ClientMsg::Req { seq, buf } => {
-                if buf.contains('\n') {
+                if buf.contains('\n') || !self.accepts_suggestions().await {
                     return;
                 }
                 if let Some(cached) = self.cached_extension(&buf) {
                     send_reply(&self.replies, seq, &cached);
                     return;
                 }
-                self.suggest(seq, buf, self.config.debounce);
+                self.suggest(seq, buf, self.shared.config.debounce);
             }
+        }
+    }
+
+    /// Called for every shell message. While paused it also forgets the last suggestion, so a
+    /// stale one is not replayed after resuming.
+    async fn accepts_suggestions(&mut self) -> bool {
+        if !self.is_shell {
+            self.is_shell = true;
+            self.shared.recorder().shell_connected();
+        }
+        let paused = tokio::fs::try_exists(&self.shared.config.paused_flag).await.unwrap_or(false);
+        if paused {
+            self.set_last_suggestion(None);
+        }
+        !paused
+    }
+
+    fn send_status(&self) {
+        let stats: DaemonStats = self.shared.recorder().snapshot();
+        match serde_json::to_string(&stats) {
+            Ok(json) => {
+                let _ = self.replies.send(format!("{json}\n"));
+            }
+            Err(err) => tracing::error!("encoding status: {err}"),
         }
     }
 
     fn cancel(&mut self) {
         if let Some(task) = self.pending.take() {
             task.abort();
+        }
+    }
+
+    fn close(&mut self) {
+        self.cancel();
+        if self.is_shell {
+            self.shared.recorder().shell_disconnected();
         }
     }
 
@@ -181,7 +240,8 @@ impl Session {
     }
 
     fn suggest(&mut self, seq: u64, buffer: String, delay: Duration) {
-        let model = self.config.model.clone();
+        let model = self.shared.config.model.clone();
+        let shared = Arc::clone(&self.shared);
         let context = Arc::clone(&self.context);
         let replies = self.replies.clone();
         let last_suggestion = Arc::clone(&self.last_suggestion);
@@ -189,17 +249,19 @@ impl Session {
             tokio::time::sleep(delay).await;
             let started = Instant::now();
             let suggestion = match model.complete_command(&context.transcript(), &buffer).await {
-                Ok(Some(suggestion)) => suggestion,
-                Ok(None) => {
-                    tracing::debug!("no suggestion for {buffer:?} ({:?})", started.elapsed());
-                    return;
-                }
+                Ok(suggestion) => suggestion,
                 Err(err) => {
                     tracing::warn!("completing {buffer:?}: {err:#}");
+                    shared.recorder().record_error(format!("{err:#}"));
                     return;
                 }
             };
-            tracing::debug!("{buffer:?} -> {suggestion:?} ({:?})", started.elapsed());
+            let elapsed = started.elapsed();
+            tracing::debug!("{buffer:?} -> {suggestion:?} ({elapsed:?})");
+            shared.recorder().record(&buffer, suggestion.as_deref(), elapsed);
+            let Some(suggestion) = suggestion else {
+                return;
+            };
             *last_suggestion.lock().unwrap_or_else(PoisonError::into_inner) =
                 Some(suggestion.clone());
             send_reply(&replies, seq, &suggestion);

@@ -5,12 +5,28 @@ use serde::{Deserialize, Serialize};
 
 const MAX_TOKENS: u32 = 48;
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+const STATUS_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// Client for llama.cpp's `llama-server` `/completion` endpoint.
 #[derive(Debug, Clone)]
 pub struct LlamaClient {
     http: reqwest::Client,
-    endpoint: String,
+    base_url: String,
+}
+
+/// Whether llama-server answers, and with which model.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct LlamaStatus {
+    pub healthy: bool,
+    /// Short model name, e.g. `Qwen2.5-Coder-3B-Q8_0`.
+    pub model: Option<String>,
+    /// Why the server is unreachable or not ready.
+    pub error: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct Props {
+    model_alias: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -68,8 +84,40 @@ impl LlamaClient {
             .timeout(REQUEST_TIMEOUT)
             .build()
             .context("building HTTP client")?;
-        let endpoint = format!("{}/completion", base_url.trim_end_matches('/'));
-        Ok(Self { http, endpoint })
+        Ok(Self { http, base_url: base_url.trim_end_matches('/').to_owned() })
+    }
+
+    /// Checks `/health`, then reads the loaded model from `/props`.
+    pub async fn status(&self) -> LlamaStatus {
+        match self.loaded_model().await {
+            Ok(model) => LlamaStatus { healthy: true, model, error: None },
+            Err(err) => {
+                LlamaStatus { healthy: false, model: None, error: Some(format!("{err:#}")) }
+            }
+        }
+    }
+
+    async fn loaded_model(&self) -> anyhow::Result<Option<String>> {
+        let health = format!("{}/health", self.base_url);
+        self.http
+            .get(&health)
+            .timeout(STATUS_TIMEOUT)
+            .send()
+            .await
+            .with_context(|| format!("no llama-server at {}", self.base_url))?
+            .error_for_status()
+            .context("llama-server is not ready (still loading the model?)")?;
+        let props: Props = self
+            .http
+            .get(format!("{}/props", self.base_url))
+            .timeout(STATUS_TIMEOUT)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await
+            .context("decoding llama-server /props")?;
+        Ok(props.model_alias.as_deref().map(short_model_name))
     }
 
     /// Asks the model how the command line `buffer` continues after `transcript`. Returns the
@@ -92,21 +140,26 @@ impl LlamaClient {
             stop: ["\n"],
             cache_prompt: true,
         };
+        let endpoint = format!("{}/completion", self.base_url);
         let response = self
             .http
-            .post(&self.endpoint)
+            .post(&endpoint)
             .json(&request)
             .send()
             .await
-            .with_context(|| {
-                format!("calling {} (is llama-server running? see README)", self.endpoint)
-            })?
+            .with_context(|| format!("calling {endpoint} (is llama-server running? see README)"))?
             .error_for_status()
-            .with_context(|| format!("llama-server error from {}", self.endpoint))?;
+            .with_context(|| format!("llama-server error from {endpoint}"))?;
         let body: CompletionResponse =
             response.json().await.context("decoding llama-server response")?;
         Ok(suggestion(buffer, &healed.forced, &body.content))
     }
+}
+
+/// `ggml-org/Qwen2.5-Coder-3B-Q8_0-GGUF` -> `Qwen2.5-Coder-3B-Q8_0`.
+fn short_model_name(alias: &str) -> String {
+    let name = alias.rsplit('/').next().unwrap_or(alias);
+    name.strip_suffix("-GGUF").unwrap_or(name).to_owned()
 }
 
 /// Turns the model output, which starts with the forced partial word, into the full suggested
@@ -132,6 +185,15 @@ pub fn suggestion(buffer: &str, forced: &str, output: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shortens_model_aliases() {
+        assert_eq!(
+            short_model_name("ggml-org/Qwen2.5-Coder-3B-Q8_0-GGUF"),
+            "Qwen2.5-Coder-3B-Q8_0"
+        );
+        assert_eq!(short_model_name("local-model"), "local-model");
+    }
 
     #[test]
     fn heals_the_partial_last_word() {
