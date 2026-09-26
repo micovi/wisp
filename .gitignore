@@ -8,3 +8,7 @@
 /.impeccable/prompts/
 /.impeccable/decision-payload.json
 /.impeccable/config.local.json
+/.impeccable/capture.sh
+/.impeccable/comp-payload.json
+/.impeccable/briefs/
+/.impeccable/questions/

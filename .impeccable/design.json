@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-24T17:10:00Z",
+  "title": "Design System: wisp",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tube Ink",
+        "canonical": "oklch(15.3% 0.030 282)",
+        "tonalRamp": [
+          "#090917",
+          "#222232",
+          "#3d3e4f",
+          "#5b5c6e",
+          "#7a7b8f",
+          "#9b9db1",
+          "#c1c2d7",
+          "#ebedff"
+        ]
+      },
+      "ink-deep": {
+        "role": "neutral",
+        "displayName": "Deep Ink",
+        "canonical": "oklch(13.3% 0.018 284)",
+        "tonalRamp": [
+          "#0a0a13",
+          "#23232d",
+          "#3e3f49",
+          "#5c5c68",
+          "#7b7c88",
+          "#9d9daa",
+          "#c2c3d0",
+          "#ecedfb"
+        ]
+      },
+      "bone": {
+        "role": "neutral",
+        "displayName": "Bone",
+        "canonical": "oklch(94.4% 0.023 87)",
+        "tonalRamp": [
+          "#0f0a02",
+          "#292317",
+          "#453f32",
+          "#635d4f",
+          "#837d6e",
+          "#a49e8f",
+          "#cac4b4",
+          "#f5eede"
+        ]
+      },
+      "bone-dim": {
+        "role": "neutral",
+        "displayName": "Dim Bone",
+        "canonical": "oklch(76.8% 0.019 86)",
+        "tonalRamp": [
+          "#0f0b03",
+          "#282319",
+          "#443f34",
+          "#625d51",
+          "#827d70",
+          "#a49e91",
+          "#cac3b6",
+          "#f4eee0"
+        ]
+      },
+      "ash": {
+        "role": "neutral",
+        "displayName": "Ash",
+        "canonical": "oklch(61.7% 0.020 89)",
+        "tonalRamp": [
+          "#0e0b03",
+          "#282419",
+          "#443f34",
+          "#625d51",
+          "#827d70",
+          "#a39e91",
+          "#c9c4b6",
+          "#f4eee0"
+        ]
+      },
+      "ghost-edge": {
+        "role": "neutral",
+        "displayName": "Ghost Edge",
+        "canonical": "oklch(40.5% 0.019 316)",
+        "tonalRamp": [
+          "#0e0911",
+          "#28212a",
+          "#443d47",
+          "#625b65",
+          "#827a85",
+          "#a39ba7",
+          "#c9c1cd",
+          "#f4ebf7"
+        ]
+      },
+      "cathode": {
+        "role": "primary",
+        "displayName": "Cathode Orange",
+        "canonical": "oklch(70.2% 0.199 43)",
+        "tonalRamp": [
+          "#3a1406",
+          "#5e240c",
+          "#833412",
+          "#b01600",
+          "#d74400",
+          "#fe6919",
+          "#ff914c",
+          "#ffd4ad"
+        ]
+      },
+      "bronze": {
+        "role": "secondary",
+        "displayName": "Gauze Bronze",
+        "canonical": "oklch(54.6% 0.077 76)",
+        "tonalRamp": [
+          "#1c0300",
+          "#381d00",
+          "#573901",
+          "#765727",
+          "#987747",
+          "#ba9867",
+          "#e1be8c",
+          "#ffe8b5"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Tube Numeral",
+        "purpose": "Measured values and step numbers in Barlow Condensed 400."
+      },
+      "headline": {
+        "displayName": "Section Headline",
+        "purpose": "One per section, Barlow Condensed 500; the hero headline is comp-scaled."
+      },
+      "command": {
+        "displayName": "Command",
+        "purpose": "The hero command line and struck completion in M PLUS 1 Code."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Prose in M PLUS 1, 66ch max, bone-dim."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Readout terms and scenario tabs in M PLUS 1 Code."
+      }
+    },
+    "shadows": [
+      {
+        "name": "tube-halo",
+        "value": "0 0 0.12em rgb(255 106 26 / 0.9), 0 0 0.5em rgb(255 106 26 / 0.75), 0 0 1.2em rgb(255 106 26 / 0.45), 0 0 2.4em rgb(255 106 26 / 0.22)",
+        "purpose": "text-shadow on struck completions and lit numerals only."
+      },
+      {
+        "name": "source-glint",
+        "value": "0 0 0.6em rgb(255 106 26 / 0.45)",
+        "purpose": "text-shadow on the source name marked inside terminal output."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-transition",
+        "value": "160ms ease-out",
+        "purpose": "Pill fill, copy-pill color and border changes."
+      },
+      {
+        "name": "afterglow-decay",
+        "value": "700ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Outgoing struck value fades 0.55 to 0 opacity with a 3px blur; removed under reduced motion."
+      },
+      {
+        "name": "strike-beat",
+        "value": "3400ms",
+        "purpose": "Interval between hero strikes; the new value snaps in with no tween."
+      },
+      {
+        "name": "first-strike-hold",
+        "value": "5200ms",
+        "purpose": "Hold on the first composed frame before cycling starts."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "readouts-stack",
+        "value": "1100px"
+      },
+      {
+        "name": "narrow",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Pill",
+      "kind": "button",
+      "refersTo": "button-pill",
+      "description": "The one primary action shape: cathode outline that fills on hover.",
+      "html": "<a class=\"ds-pill\" href=\"#\">Install from GitHub <svg class=\"ds-pill-mark\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z\"/></svg></a>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 0.6em; padding: 0.74em 1.3em; line-height: 1.2; border: 2px solid var(--cathode, #ff6a1a); border-radius: 999px; font-family: \"M PLUS 1 Code\", ui-monospace, \"SF Mono\", Menlo, monospace; font-weight: 500; font-size: 1rem; color: var(--cathode, #ff6a1a); background: transparent; text-decoration: none; transition: background-color 160ms ease-out, color 160ms ease-out; } .ds-pill:hover { background: var(--cathode, #ff6a1a); color: var(--ink, #0a0a18); } .ds-pill:focus-visible { outline: 2px solid var(--cathode, #ff6a1a); outline-offset: 4px; border-radius: 2px; } .ds-pill-mark { width: 1.15em; height: 1.15em; }"
+    },
+    {
+      "name": "Copy Pill",
+      "kind": "button",
+      "refersTo": "button-copy",
+      "description": "Quiet bronze-outlined pill beside a copyable command.",
+      "html": "<button type=\"button\" class=\"ds-copy\">Copy</button>",
+      "css": ".ds-copy { padding: 0.3em 0.9em; border: 1px solid var(--bronze, #8a6a3a); border-radius: 999px; background: none; font-family: \"M PLUS 1 Code\", ui-monospace, \"SF Mono\", Menlo, monospace; font-size: 0.85rem; color: var(--bone-dim, #b9b3a6); cursor: pointer; transition: color 160ms ease-out, border-color 160ms ease-out; } .ds-copy:hover, .ds-copy.copied { color: var(--cathode, #ff6a1a); border-color: var(--cathode, #ff6a1a); } .ds-copy:focus-visible { outline: 2px solid var(--cathode, #ff6a1a); outline-offset: 4px; border-radius: 2px; }"
+    },
+    {
+      "name": "Scenario Tabs",
+      "kind": "chip",
+      "refersTo": "tab-scenario-selected",
+      "description": "Bare mono words; the selected one is cathode.",
+      "html": "<div class=\"ds-tabs\" role=\"tablist\"><button role=\"tab\" aria-selected=\"true\">kubectl</button><button role=\"tab\" aria-selected=\"false\">compose</button><button role=\"tab\" aria-selected=\"false\">git</button></div>",
+      "css": ".ds-tabs { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; } .ds-tabs button { padding: 0.25rem 0; border: 0; background: none; font-family: \"M PLUS 1 Code\", ui-monospace, \"SF Mono\", Menlo, monospace; font-size: 1rem; color: var(--ash, #8a8578); cursor: pointer; } .ds-tabs button:hover { color: var(--bone-dim, #b9b3a6); } .ds-tabs button[aria-selected=\"true\"] { color: var(--cathode, #ff6a1a); } .ds-tabs button:focus-visible { outline: 2px solid var(--cathode, #ff6a1a); outline-offset: 4px; border-radius: 2px; }"
+    },
+    {
+      "name": "Masthead",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "No bar: lowercase wordmark left, one link right, on the plane.",
+      "html": "<header class=\"ds-mast\"><a class=\"ds-mark\" href=\"#\">wisp</a><a class=\"ds-nav\" href=\"#\">GitHub</a></header>",
+      "css": ".ds-mast { display: flex; justify-content: space-between; align-items: flex-start; padding: 1.25rem; background: var(--ink, #0a0a18); } .ds-mark, .ds-nav { font-family: \"M PLUS 1\", system-ui, sans-serif; font-weight: 500; line-height: 1; color: var(--bone, #f3ecdc); text-decoration: none; } .ds-mark { font-size: 1.6rem; } .ds-nav { font-size: 1rem; } .ds-nav:hover, .ds-mark:hover { color: var(--cathode, #ff6a1a); } .ds-mast a:focus-visible { outline: 2px solid var(--cathode, #ff6a1a); outline-offset: 4px; border-radius: 2px; }"
+    },
+    {
+      "name": "Keycap",
+      "kind": "custom",
+      "refersTo": "keycap",
+      "description": "Inline keyboard key in prose.",
+      "html": "<p class=\"ds-kbd-line\">Accept with <kbd class=\"ds-kbd\">→</kbd> or <kbd class=\"ds-kbd\">Ctrl</kbd>&thinsp;<kbd class=\"ds-kbd\">F</kbd>.</p>",
+      "css": ".ds-kbd-line { font-family: \"M PLUS 1\", system-ui, sans-serif; color: var(--bone-dim, #b9b3a6); } .ds-kbd { font-family: \"M PLUS 1 Code\", ui-monospace, \"SF Mono\", Menlo, monospace; font-size: 0.85em; padding: 0.05em 0.45em; border: 1px solid var(--bronze, #8a6a3a); border-radius: 4px; color: var(--bone, #f3ecdc); }"
+    },
+    {
+      "name": "Command Row",
+      "kind": "custom",
+      "description": "A copyable command bare on the plane with a ghost-edge sigil and a copy pill.",
+      "html": "<div class=\"ds-cmd\"><code>brew install llama.cpp</code><button type=\"button\" class=\"ds-cmd-copy\">Copy</button></div>",
+      "css": ".ds-cmd { display: flex; align-items: baseline; gap: 1.25rem; } .ds-cmd code { flex: 1; font-family: \"M PLUS 1 Code\", ui-monospace, \"SF Mono\", Menlo, monospace; font-size: 1.1rem; color: var(--bone, #f3ecdc); overflow-wrap: anywhere; } .ds-cmd code::before { content: \"$ \"; color: var(--ghost-edge, #4d4650); } .ds-cmd-copy { padding: 0.3em 0.9em; border: 1px solid var(--bronze, #8a6a3a); border-radius: 999px; background: none; font-family: \"M PLUS 1 Code\", ui-monospace, \"SF Mono\", Menlo, monospace; font-size: 0.85rem; color: var(--bone-dim, #b9b3a6); cursor: pointer; transition: color 160ms ease-out, border-color 160ms ease-out; } .ds-cmd-copy:hover { color: var(--cathode, #ff6a1a); border-color: var(--cathode, #ff6a1a); } .ds-cmd-copy:focus-visible { outline: 2px solid var(--cathode, #ff6a1a); outline-offset: 4px; border-radius: 2px; }"
+    },
+    {
+      "name": "Candidate Stack",
+      "kind": "custom",
+      "description": "Signature: command, hollow ghost candidates, and the one struck completion with the tube halo.",
+      "html": "<div class=\"ds-line\"><p class=\"ds-command\">$ kubectl logs -n billing api<span class=\"ds-caret\"></span></p><div class=\"ds-stack\"><ul class=\"ds-ghosts\"><li>-worker-5c8d</li><li>-gateway</li><li>-api-v2</li></ul><p class=\"ds-struck\">-7d9f8b6c4-x2kqp</p></div></div>",
+      "css": ".ds-line { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.6rem 1rem; padding: 2rem; background: var(--ink, #0a0a18); } .ds-command { margin: 0.4rem 0 0; font-family: \"M PLUS 1 Code\", ui-monospace, \"SF Mono\", Menlo, monospace; font-weight: 500; font-size: 1.5rem; line-height: 1.1; letter-spacing: -0.04em; color: var(--bone, #f3ecdc); white-space: nowrap; } .ds-caret { display: inline-block; width: 2px; height: 0.74em; margin-left: 0.12em; background: var(--bone, #f3ecdc); } .ds-stack { font-family: \"M PLUS 1 Code\", ui-monospace, \"SF Mono\", Menlo, monospace; white-space: nowrap; } .ds-ghosts { list-style: none; margin: 0; padding: 0; font-size: 1.15rem; font-weight: 300; line-height: 1.16; color: #10162a; -webkit-text-stroke: 1px #3a4a64; } .ds-struck { margin: 0.2rem 0 0; font-size: 1.2rem; font-weight: 500; line-height: 1.1; letter-spacing: 0.015em; color: var(--cathode, #ff6a1a); text-shadow: var(--halo, 0 0 0.12em rgb(255 106 26 / 0.9), 0 0 0.5em rgb(255 106 26 / 0.75), 0 0 1.2em rgb(255 106 26 / 0.45), 0 0 2.4em rgb(255 106 26 / 0.22)); }"
+    },
+    {
+      "name": "Tube Readout",
+      "kind": "custom",
+      "description": "Signature: a lit cathode numeral with its unlit predecessor in register.",
+      "html": "<div class=\"ds-readout\"><div class=\"ds-dt\">Names found only on screen, out of eight</div><span class=\"ds-digits\"><span class=\"ds-ghost\" aria-hidden=\"true\">3</span><span class=\"ds-lit\">7</span><span class=\"ds-unit\">/8</span></span><span class=\"ds-note\">3B with token healing. Without it: 3/8.</span></div>",
+      "css": ".ds-readout { padding: 2rem; background: var(--ink, #0a0a18); } .ds-dt { font-family: \"M PLUS 1 Code\", ui-monospace, \"SF Mono\", Menlo, monospace; font-size: 0.95rem; color: var(--bone-dim, #b9b3a6); } .ds-digits { position: relative; display: inline-flex; align-items: baseline; margin-top: 0.5rem; font-family: \"Barlow Condensed\", \"Arial Narrow\", sans-serif; font-weight: 400; font-size: 6rem; line-height: 1; } .ds-ghost { position: absolute; left: 0; top: 0; color: transparent; -webkit-text-stroke: 1.5px var(--ghost-edge, #4d4650); } .ds-lit { position: relative; color: var(--cathode, #ff6a1a); text-shadow: var(--halo, 0 0 0.12em rgb(255 106 26 / 0.9), 0 0 0.5em rgb(255 106 26 / 0.75), 0 0 1.2em rgb(255 106 26 / 0.45), 0 0 2.4em rgb(255 106 26 / 0.22)); } .ds-unit { margin-left: 0.08em; font-size: 0.42em; color: var(--bone-dim, #b9b3a6); } .ds-note { display: block; max-width: 44ch; margin-top: 0.75rem; font-family: \"M PLUS 1\", system-ui, sans-serif; color: var(--bone-dim, #b9b3a6); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Struck Cathode Gauze",
+    "overview": "**Creative North Star: \"Struck Cathode Gauze\"**\n\nwisp is drawn as a single dark instrument plane: an ink-blue black field that runs past every edge, with an undulating bronze wire gauze plate behind the first viewport and again behind the measured figures. Type sits on the gauze with no bar, frame or window chrome. The one event in the world is a strike: of all the candidates, one name lights in cathode orange with a tube halo while the rest stay unlit, outlined ghosts. Everything else is bone-white type and space.\n\nDensity is low and the rhythm is long. Sections are separated by large vertical space, not by lines or containers, and each section carries one heading in condensed display type, some prose in M PLUS 1, and whatever real command text it needs in M PLUS 1 Code. Orange is reserved for what wisp picks or what you can act on, so it reads as signal, never decoration.\n\nThe world refuses the terminal-window mockup and the feature-card grid: terminal output is set as bare monospace on the plane, and grouping comes from depth (the gauze) and space.",
+    "keyCharacteristics": [
+      "One ink plane, full bleed; the bronze gauze plate is the only imagery and the only texture.",
+      "Two hues: ink blue and cathode orange. Neutrals are warm bone and ash.",
+      "Lit versus unlit: the chosen value glows in cathode, alternatives stay as hollow ghost outlines in register.",
+      "Three typefaces with fixed jobs: condensed display, code mono, humanist sans prose.",
+      "The only control shape is the outlined pill."
+    ],
+    "rules": [
+      {
+        "name": "The Two Hues Rule",
+        "body": "The page has ink blue and cathode orange, nothing else. Bone, ash and bronze are warm neutrals of the gauze; no third hue enters.",
+        "section": "colors"
+      },
+      {
+        "name": "The Strike Rule",
+        "body": "Cathode marks the one thing wisp picked or the one thing you can do. If two unrelated things on a screen glow, one of them is wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The Real Strings Rule",
+        "body": "Mono is only for text a terminal would print or a user would type. Prose never goes mono for flavor.",
+        "section": "typography"
+      },
+      {
+        "name": "The Condensed Heads Rule",
+        "body": "Barlow Condensed carries headings and numerals only, never paragraphs or controls.",
+        "section": "typography"
+      },
+      {
+        "name": "The Space Not Boxes Rule",
+        "body": "Groups are separated by section space and column gap. There are no cards, panels, dividers or horizontal rules.",
+        "section": "layout"
+      },
+      {
+        "name": "The Filament Rule",
+        "body": "Glow is emitted by lit cathode text and nothing else. No glowing boxes, buttons, borders or backgrounds.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the page on one ink plane (#0a0a18) running to every edge, with the gauze plate masked into it.",
+      "Do reserve cathode for the struck value and for controls, and give struck text the four-layer tube halo.",
+      "Do show alternatives as hollow ghost outlines in register behind or beside the lit value.",
+      "Do set every command, completion and terminal line in M PLUS 1 Code, and only those.",
+      "Do make controls outlined pills: cathode 2px for the primary action, bronze 1px for quiet ones.",
+      "Do separate sections with the section space (clamp(6rem, 14vw, 12rem)) and let prose wrap at 66ch.",
+      "Do strike, don't tween: value changes snap, and only the outgoing glow decays over one beat."
+    ],
+    "donts": [
+      "Don't draw terminal windows, title bars, traffic-light dots or code panels; terminal text sits bare on the plane.",
+      "Don't group content in cards, bordered panels, dividers or horizontal rules.",
+      "Don't put glow or shadow on boxes, buttons or borders; the halo belongs to lit cathode text only.",
+      "Don't introduce a third hue, a gradient fill, or a second accent beside cathode.",
+      "Don't set prose or controls in Barlow Condensed, or prose in mono.",
+      "Don't use ghost-edge (#4d4650) for readable text; it is for outlines and the `$ ` sigil.",
+      "Don't capitalize the wordmark; it is always \"wisp\"."
+    ]
+  }
+}

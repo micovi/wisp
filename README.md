@@ -129,6 +129,18 @@ wisp complete --show-prompt "git che"   # also print what the model sees
 tail -f ~/.cache/wisp/wisp.log          # daemon log
 ```
 
+## Landing page
+
+`site/` is the landing page. It is static HTML and CSS with no build step, so any static host
+can serve it. To preview it locally:
+
+```bash
+python3 -m http.server -d site 8000
+```
+
+Its visual system is recorded in `DESIGN.md`, and the product facts it may claim are in
+`PRODUCT.md`.
+
 ## Development
 
 ```bash
