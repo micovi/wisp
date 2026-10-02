@@ -1,0 +1,21 @@
+# Cloudflare Pages headers for the wisp landing page.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/plates/*
+  Cache-Control: public, max-age=86400
+
+/assets/style.css
+  Cache-Control: public, max-age=86400
+
+/assets/main.js
+  Cache-Control: public, max-age=86400
+
+/assets/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
